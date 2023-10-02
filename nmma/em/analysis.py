@@ -24,9 +24,12 @@ from .io import loadEvent
 matplotlib.use("agg")
 
 
-def get_parser():
+def get_parser(**kwargs):
+    add_help = kwargs.get("add_help", True)
+
     parser = argparse.ArgumentParser(
-        description="Inference on kilonova ejecta parameters."
+        description="Inference on kilonova ejecta parameters.",
+        add_help=add_help,
     )
     parser.add_argument(
         "--config",
@@ -37,7 +40,7 @@ def get_parser():
         "--model", type=str, help="Name of the kilonova model to be used"
     )
     parser.add_argument(
-        "--interpolation_type",
+        "--interpolation-type",
         type=str,
         help="SVD interpolation scheme.",
         default="sklearn_gp",
@@ -284,7 +287,7 @@ def get_parser():
         "--plot", action="store_true", default=False, help="add best fit plot"
     )
     parser.add_argument(
-        "--bilby_zero_likelihood_mode",
+        "--bilby-zero-likelihood-mode",
         action="store_true",
         default=False,
         help="enable prior run",
@@ -379,7 +382,7 @@ def analysis(args):
 
     refresh = False
     try:
-        refresh = args.refresh_model_list
+        refresh = args.refresh_models_list
     except AttributeError:
         pass
     if refresh:

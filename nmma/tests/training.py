@@ -25,7 +25,7 @@ def test_training():
     workingDir = os.path.dirname(__file__)
 
     dataDir = os.path.join(workingDir, 'data/bulla')
-    ModelPath = "svdrainingmodel"
+    ModelPath = "svdtrainingmodel"
     filenames = glob.glob(f"{dataDir}/*.dat")
 
     data = io.read_photometry_files(filenames, filters=filts)

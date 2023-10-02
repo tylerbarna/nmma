@@ -128,11 +128,7 @@ class OpticalLightCurve(Likelihood):
             usedIdx = np.where(np.isfinite(mag_app_filt))[0]
             sample_times_used = self.sample_times[usedIdx]
             mag_app_used = mag_app_filt[usedIdx]
-            try:
-                t0 = self.parameters["timeshift"]
-            except KeyError:
-                print("Warning: the 'KNtimeshift' parameter is deprecated as of nmma 0.0.19, please update your prior to use 'timeshift' instead")
-                t0 = self.parameters["KNtimeshift"]
+            t0 = self.parameters["timeshift"]
             if len(mag_app_used) > 0:
                 mag_app_interp[filt] = interp1d(
                     sample_times_used + t0,
@@ -158,7 +154,10 @@ class OpticalLightCurve(Likelihood):
             data_sigma = self.light_curve_data[filt][:, 2]
 
             # include the error budget into calculation
-            data_sigma = np.sqrt(data_sigma**2 + self.error_budget[filt] ** 2)
+            if 'em_syserr' in self.parameters:
+                data_sigma = np.sqrt(data_sigma**2 + self.parameters['em_syserr']**2)
+            else:
+                data_sigma = np.sqrt(data_sigma**2 + self.error_budget[filt]**2)
 
             # evaluate the light curve magnitude at the data points
             mag_est = mag_app_interp[filt](data_time)
@@ -187,9 +186,15 @@ class OpticalLightCurve(Likelihood):
 
             # evaluate the data with infinite error
             if len(infIdx) > 0:
-                gausslogsf = scipy.stats.norm.logsf(
-                    data_mag[infIdx], mag_est[infIdx], self.error_budget[filt]
-                )
+                if 'em_syserr' in self.parameters:
+                    upperlim_sigma = self.parameters['em_syserr']
+                    gausslogsf = scipy.stats.norm.logsf(
+                        data_mag[infIdx], mag_est[infIdx], upperlim_sigma
+                    )
+                else:
+                    gausslogsf = scipy.stats.norm.logsf(
+                        data_mag[infIdx], mag_est[infIdx], self.error_budget[filt]
+                    )
                 gaussprob_total += np.sum(gausslogsf)
 
         log_prob = minus_chisquare_total + gaussprob_total

@@ -37,7 +37,7 @@ refer to the developer section below.
 
 .. note::
 
-   The above may not work for arm64 Macs; see specifc instructions `below <#arm64mac>`_. 
+   The above may not work for arm64 Macs; see specifc instructions `below <#arm64mac>`_.
 
 For developers and contributors
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -187,8 +187,7 @@ requirements.txt file which are necessary for NMMA:
 
 .. code::
 
-   pip install -r requirements.txt
-   python setup.py install
+   pip install .
 
 .. note::
 
@@ -216,9 +215,9 @@ requirements.txt file which are necessary for NMMA:
 
 .. note::
 
-   If everything has gone smoothly, all of these above mentioned "pip install something" commands will show that the requirements have already been satisfied. Otherwise, these will cover the dependencies if not covered by ``python setup.py install``. Also, if running ``python setup.py install`` shows something on the lines of "cannot cythonize without cython", do:
+   If everything has gone smoothly, all of these above mentioned "pip install something" commands will show that the requirements have already been satisfied. Otherwise, these will cover the dependencies if not covered by ``pip install .``. Also, if running ``pip install .`` shows something on the lines of "cannot cythonize without cython", do:
 
-``conda install -c anaconda cython==0.29.24`` and redo ``python setup.py install``.
+``conda install -c anaconda cython==0.29.24`` and redo ``pip install .``.
 
 .. _arm64mac:
 
@@ -240,7 +239,13 @@ Install C compiler and cmake:
 #. For arm64 Macs (e.g. M1, M2), there is an issue installing ``pyfftw``
    with pip (see
    https://github.com/pyFFTW/pyFFTW/issues/349#issuecomment-1468638458).
-   To address, use ``Homebrew`` to run
+   To address, first try running
+
+   .. code::
+
+      conda install -c conda-forge pyfftw
+
+   If this completes successfully, re-run any failed installations and continue. Otherwise, use ``Homebrew`` to run
 
    .. code::
 
@@ -267,9 +272,9 @@ Install C compiler and cmake:
    .. tip::
 
       FFTW installation can also be attempted using conda as follows
-   
+
       .. code::
-   
+
          conda install -c conda-forge fftw
          DYLD_LIBRARY_PATH=$HOME/anaconda3/envs/nmma_env
          pip install pyfftw
