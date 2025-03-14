@@ -1893,7 +1893,7 @@ def lightcurve_HoNa(t, mass, velocities, opacities, n):
     r = be * t * (c * astropy.units.s)
     
     # Effective temperature - use broadcasting for squaring
-    T = ((L / (4 * np.pi * sigma_sb * r**2))**0.25).to(astropy.units.K)
+    T = ((L / (4 * np.pi * sigSB * r**2))**0.25).to(astropy.units.K)
     
     # Return results
     return L, T, r.to(astropy.units.cm)
