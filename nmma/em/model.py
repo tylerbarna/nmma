@@ -1018,7 +1018,7 @@ class SimpleKilonovaLightCurveModel(LightCurveMixin):
             )
             param_dict["bb_luminosity"] = L.cgs.value
             param_dict["temperature"] = T.si.value
-            _, lbol, mag = utils.powerlaw_blackbody_constant_temperature_lc(sample_times, param_dict, filters=self.filters)
+            _, lbol, mag = utils.blackbody_constant_temperature(sample_times, param_dict, filters=self.filters)
         elif self.model == "PL_BB_fixedT":
             _, lbol, mag = utils.powerlaw_blackbody_constant_temperature_lc(sample_times, param_dict, filters=self.filters)
         elif self.model == "blackbody_fixedT":
