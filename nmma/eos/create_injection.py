@@ -2,6 +2,8 @@ import argparse
 import json
 import pandas as pd
 
+from tqdm import tqdm
+
 import numpy as np
 
 import lalsimulation as lalsim
@@ -262,6 +264,24 @@ def get_parser():
         action="store_true",
         help="Whether to create injection files with eject properties",
     )
+    parser.add_argument(
+        "--snr-cutoff",
+        default=0.,
+        type=float,
+        help="The value of SNR cutoff for the injection generation (default: 0)"
+    )
+    parser.add_argument(
+        "--ifos",
+        default="H1,L1,V1",
+        type=str,
+        help="Comma seperated list of ifos to be used for SNR calculation"
+    )
+    parser.add_argument(
+        "--ifos-psd",
+        default="",
+        type=str,
+        help="Comma seperated list of psds files to be used (default: using bilby default)"
+    )
     parser.add_argument("-d", "--detections-file", type=str)
     parser.add_argument("-i", "--indices-file", type=str)
     parser.add_argument(
@@ -466,7 +486,7 @@ def main(args=None):
 
         dataframe = dataframe.take(index_taken)
 
-        print("{0} injections left".format(len(index_taken)))
+        print("{0} injections left after ejecta filtering".format(len(index_taken)))
 
     if args.indices_file:
         if args.detections_file is not None:
@@ -474,6 +494,53 @@ def main(args=None):
         else:
             idxs = index_taken
         np.savetxt(args.indices_file, idxs, fmt="%d")
+
+    if args.snr_cutoff:
+        print(f"Removing injection with SNR less than {args.snr_cutoff}")
+        import bilby
+        bilby.core.utils.setup_logger(log_level="ERROR")
+        IFOs = bilby.gw.detector.InterferometerList(args.ifos.split(','))
+
+        if len(args.ifos_psd) > 0:
+            from bilby.gw.detector import PowerSpectralDensity
+            psds = args.ifos_psd.split(',')
+            for ifo, psd in zip(IFOs, psds):
+                ifo.power_spectral_density = PowerSpectralDensity(psd_file=psd)
+
+        wf_model = bilby.gw.waveform_generator.WaveformGenerator(
+            duration=256,
+            sampling_frequency=2048,
+            frequency_domain_source_model=bilby.gw.source.lal_binary_neutron_star,
+            parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_neutron_star_parameters,
+            waveform_arguments = {
+                "waveform_approximant": "IMRPhenomPv2_NRTidalv2",
+                "reference_frequency": 20,
+                "minimum_frequency": 20,  # Ensure consistency with PSD
+            },
+        )
+        # Loop over injections to compute SNRs
+        snr_list = []
+        for _, inj in tqdm(dataframe.iterrows()):
+            # create data just to please the bilby sanity check
+            IFOs.set_strain_data_from_power_spectral_densities(
+                sampling_frequency=2048, duration=256,
+                start_time=inj['geocent_time'] - (256 - 2.)
+            )
+            # Inject the waveform into the detectors
+            snr = 0.0
+            for ifo in IFOs:
+                ifo.inject_signal(
+                    waveform_generator=wf_model,
+                    parameters=inj.to_dict(),
+                    raise_error=False,
+                )
+                snr += ifo.meta_data['optimal_SNR']
+            snr_list.append(np.sqrt(snr))
+        index_taken = np.where(np.array(snr_list) >= args.snr_cutoff)[0]
+        dataframe['optimal_network_snr'] = np.array(snr_list)
+        dataframe = dataframe.take(index_taken)
+
+        print("{0} injections left after snr filtering".format(len(index_taken)))
 
     # dump the whole thing back into a json injection file
     injection_creator.write_injection_dataframe(
