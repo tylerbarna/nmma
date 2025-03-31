@@ -22,7 +22,7 @@ from .likelihood import OpticalLightCurve
 from .model import create_light_curve_model_from_args, model_parameters_dict
 from .prior import create_prior_from_args
 from .utils import getFilteredMag, dataProcess
-from .io import loadEvent
+from .io import loadEvent, detection_limit_from_m4opt_fits_file
 
 matplotlib.use("agg")
 
@@ -88,6 +88,9 @@ def get_parser(**kwargs):
     )
     parser.add_argument(
         "--dt", type=float, default=0.1, help="Time step in day (default: 0.1)"
+    )
+    parser.add_argument(
+        "--dt-inj", type=float, default=1, help="Time step in day for injection (default: 1.0)"
     )
     parser.add_argument(
         "--log-space-time",
@@ -394,6 +397,10 @@ def get_parser(**kwargs):
         help="Fits file output from Bayestar, to be used for constructing dL-iota prior"
     )
     parser.add_argument(
+        "--detection-limit-fits-file",
+        help="Fits file output from m4opt which contain the detection limit of a givensky location"
+    )
+    parser.add_argument(
         "--cosiota-node-num",
         help="Number of cos-iota nodes used in the Bayestar fits (default: 10)",
         default=10,
@@ -560,7 +567,7 @@ def analysis(args):
 
         args.kilonova_tmin = args.tmin
         args.kilonova_tmax = args.tmax
-        args.kilonova_tstep = args.dt
+        args.kilonova_tstep = args.dt_inj
         args.kilonova_error = args.photometric_error_budget
 
         if not args.injection_model:
@@ -1284,7 +1291,7 @@ def nnanalysis(args):
 
         args.kilonova_tmin = args.tmin
         args.kilonova_tmax = args.tmax
-        args.kilonova_tstep = args.dt
+        args.kilonova_tstep = args.dt_inj
         args.kilonova_error = args.photometric_error_budget
 
         current_points = int(round(args.tmax - args.tmin))/args.dt + 1
@@ -1314,8 +1321,6 @@ def nnanalysis(args):
         if args.injection_outfile is not None:
             if filters is not None:
                 if args.injection_detection_limit is None:
-                    detection_limit = {x: np.inf for x in filters}
-                else:
                     detection_limit = {
                         x: float(y)
                         for x, y in zip(
@@ -1323,6 +1328,14 @@ def nnanalysis(args):
                             args.injection_detection_limit.split(","),
                         )
                     }
+                elif args.detection_limit_fits_file is not None:
+                    limit_given_radec = detection_limit_from_m4opt_fits_file(fits_file, ra, dec)
+                    detection_limit = {
+                        x: float(limit_given_radec)
+                        for x in filters
+                    }
+                else:
+                    detection_limit = {x: np.inf for x in filters}
             else:
                 detection_limit = {}
             data_out = np.empty((0, 6))
