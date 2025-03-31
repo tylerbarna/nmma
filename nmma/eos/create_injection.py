@@ -542,6 +542,10 @@ def main(args=None):
 
         print("{0} injections left after snr filtering".format(len(index_taken)))
 
+    # re-index the simulation_id
+    if not args.injection_file:
+        print("Re-indexing the simulation_id")
+        dataframe['simulation_id'] = np.arange(len(dataframe))
     # dump the whole thing back into a json injection file
     injection_creator.write_injection_dataframe(
         dataframe, args.filename, args.extension
