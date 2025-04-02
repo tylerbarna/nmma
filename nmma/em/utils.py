@@ -24,6 +24,13 @@ import matplotlib.pyplot as plt
 from nmma.em.training import SVDTrainingModel
 
 try:
+    from m4opt.missions import uvex
+    M4OPT_INSTALLED = True
+except:
+    M4OPT_INSTALLED = False
+    print("Install m4opt if you want to use uvex filters")
+
+try:
     import afterglowpy
 
     AFTERGLOWPY_INSTALLED = True
@@ -344,6 +351,15 @@ def get_default_filts_lambdas(filters=None):
 
     filts = filts + [band.name for band in bandpasses]
     lambdas = np.concatenate([lambdas, [1e-10 * band.wave_eff for band in bandpasses]])
+    if M4OPT_INSTALLED:
+        fuv_bandpass = uvex.detector.bandpasses['FUV']
+        nuv_bandpass = uvex.detector.bandpasses['NUV']
+
+        fuv_lambda = 1e-10 * fuv_bandpass.avgwave().value
+        nuv_lambda = 1e-10 * nuv_bandpass.avgwave().value
+
+        filts = filts + ['FUV', 'NUV']
+        lambdas = np.concatenate([lambdas, [fuv_lambda, nuv_lambda]])
 
     if filters is not None:
         filts_slice = []
