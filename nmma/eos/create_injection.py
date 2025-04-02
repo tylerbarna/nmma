@@ -33,8 +33,11 @@ def file_to_dataframe(
         table = Table.read(injection_file, format="ligolw", tablename="sim_inspiral")
     elif injection_file.endswith(".dat"):
         table = Table.read(injection_file, format="csv", delimiter="\t")
+    elif injection_file.endswith('.ecsv'):
+        from astropy.table import Table as astro_Table
+        table = astro_Table.read(injection_file)
     else:
-        raise ValueError("Only understand xml and dat")
+        raise ValueError("Only understand xml, dat and ecsv")
 
     injection_values = {
         "simulation_id": [],
@@ -319,6 +322,7 @@ def main(args=None):
             or args.injection_file.endswith(".xml")
             or args.injection_file.endswith(".xml.gz")
             or args.injection_file.endswith(".dat")
+            or args.injection_file.endswith(".ecsv")
         ), "Unknown injection file format"
 
     if not args.original_parameters:
@@ -338,6 +342,7 @@ def main(args=None):
             args.injection_file.endswith(".xml")
             or args.injection_file.endswith(".xml.gz")
             or args.injection_file.endswith(".dat")
+            or args.injection_file.endswith(".ecsv")
         ):
             dataframe_from_inj = file_to_dataframe(
                 args.injection_file,
@@ -456,9 +461,15 @@ def main(args=None):
     if args.eject:
         if args.binary_type == "BNS":
             ejectaFitting = BNSEjectaFitting()
+            dataframe = dataframe[dataframe['lambda_1'] != 0.0]
+            dataframe = dataframe[dataframe['lambda_2'] != 0.0]
+            dataframe.reset_index(drop=True, inplace=True)
 
         elif args.binary_type == "NSBH":
             ejectaFitting = NSBHEjectaFitting()
+            dataframe = dataframe[dataframe['lambda_1'] == 0.0]
+            dataframe = dataframe[dataframe['lambda_2'] != 0.0]
+            dataframe.reset_index(drop=True, inplace=True)
 
         else:
             raise ValueError("Unknown binary type")
