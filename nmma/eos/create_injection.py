@@ -389,7 +389,14 @@ def main(args=None):
         )
         dataframe_from_prior["timeshift"] = timeshifts
 
+    # remove the gps time from the prior dataframe 
+    # in case that is in the injection table
     inj_columns = set(dataframe_from_inj.columns.tolist())
+    if 'geocent_time' in inj_columns:
+        dataframe_from_prior.drop(columns=['geocent_time',], inplace=True)
+    elif 'geocent_time_x' in inj_columns:
+        dataframe_from_prior.drop(columns=['geocent_time_x',], inplace=True)
+
     prior_columns = set(dataframe_from_prior.columns.tolist())
 
     columns_to_remove = list(inj_columns.intersection(prior_columns))

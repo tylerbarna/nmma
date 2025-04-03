@@ -216,6 +216,10 @@ class NSBHEjectaFitting(object):
         converted_parameters["log10_mej_wind"] = np.log10(
             converted_parameters["ratio_zeta"]
         ) + np.log10(mdisk_fit)
+        # total eject mass
+        total_ejeta_mass = 10**log10_mej_dyn + 10**converted_parameters["log10_mej_wind"]
+        log10_mej = np.log10(total_ejeta_mass)
+        converted_parameters["log10_mej"] = log10_mej
 
         if isinstance(compactness_2, (list, tuple, pd.core.series.Series, np.ndarray)):
             BH_index = np.where(compactness_2 == 0.5)[0]
@@ -224,13 +228,16 @@ class NSBHEjectaFitting(object):
 
             converted_parameters["log10_mej_dyn"][invalid_index] = -np.inf
             converted_parameters["log10_mej_wind"][invalid_index] = -np.inf
+            converted_parameters["log10_mej"][invalid_index] = -np.inf
 
         else:
             if compactness_2 == 0.5 or (not np.isfinite(log_mej_dyn)):
                 converted_parameters["log10_mej_dyn"] = -np.inf
                 converted_parameters["log10_mej_wind"] = -np.inf
+                converted_parameters["log10_mej"] = -np.inf
 
-        added_keys = added_keys + ["log10_mej_dyn", "log10_mej_wind"]
+
+        added_keys = added_keys + ["log10_mej_dyn", "log10_mej_wind", "log10_mej"]
 
         return converted_parameters, added_keys
 

@@ -514,7 +514,8 @@ def analysis(args):
                 f, object_hook=bilby.core.utils.decode_bilby_json
             )
         injection_df = injection_dict["injections"]
-        injection_parameters = injection_df.iloc[args.injection_num].to_dict()
+        row = injection_df.loc[injection_df['simulation_id'] == args.injection_num]  
+        injection_parameters = row.squeeze().to_dict()
 
         if "geocent_time" in injection_parameters:
             tc_gps = time.Time(injection_parameters["geocent_time"], format="gps")
@@ -590,6 +591,8 @@ def analysis(args):
             injection_parameters, args, light_curve_model=injection_model
         )
         print("Injection generated")
+
+        import pdb; pdb.set_trace()
 
         #checking produced data for magnitudes dimmer than the detection limit
         if filters is not None:
@@ -1329,7 +1332,11 @@ def nnanalysis(args):
                         )
                     }
                 elif args.detection_limit_fits_file is not None:
-                    limit_given_radec = detection_limit_from_m4opt_fits_file(fits_file, ra, dec)
+                    limit_given_radec = detection_limit_from_m4opt_fits_file(
+                        args.detection_limit_fits_file, args.ra, args.dec
+                    )
+                    print(f"Detection limit from {args.detection_limit_fits_file} is used")
+                    print(f"Given ra:{args.ra} and dec:{args.dec}, the limiting mag is {limit_given_radec}")
                     detection_limit = {
                         x: float(limit_given_radec)
                         for x in filters
