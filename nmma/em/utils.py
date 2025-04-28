@@ -206,6 +206,8 @@ def getFilteredMag(mag, filt):
         "swope2__y",
         "swope2__J",
         "swope2__H",
+        "FUV",
+        "NUV",
     ]
     sncosmo_filts = [val["name"] for val in get_all_bandpass_metadata()]
     sncosmo_maps = {

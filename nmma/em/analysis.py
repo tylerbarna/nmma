@@ -590,9 +590,7 @@ def analysis(args):
         data = create_light_curve_data(
             injection_parameters, args, light_curve_model=injection_model
         )
-        print("Injection generated")
-
-        import pdb; pdb.set_trace()
+        print(f"Injection generated with parameters {injection_parameters}")
 
         #checking produced data for magnitudes dimmer than the detection limit
         if filters is not None:
@@ -601,6 +599,16 @@ def analysis(args):
                     detection_limit = {'ps1__g':25.8,'ps1__r':25.5,'ps1__i':24.8,'ps1__z':24.1,'ps1__y':22.9}
                 #elif args.ztf_sampling:
                 #    detection_limit = {}
+                elif args.detection_limit_fits_file is not None:
+                    limit_given_radec = detection_limit_from_m4opt_fits_file(
+                        args.detection_limit_fits_file, args.ra, args.dec
+                    )
+                    print(f"Detection limit from {args.detection_limit_fits_file} is used")
+                    print(f"Given ra:{args.ra} and dec:{args.dec}, the limiting mag is {limit_given_radec}")
+                    detection_limit = {
+                        x: float(limit_given_radec)
+                        for x in filters
+                    }
                 else:
                     detection_limit = {x: np.inf for x in filters}
             else:
@@ -1096,11 +1104,10 @@ def analysis(args):
             )
 
             idx = np.where(~np.isfinite(sigma_y))[0]
-            ax_sum.errorbar(
+            ax_sum.scatter(
                 t[idx],
                 y[idx],
-                sigma_y[idx],
-                fmt="v",
+                marker="v",
                 color=color,
             )
   
