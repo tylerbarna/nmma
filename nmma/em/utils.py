@@ -2,6 +2,7 @@ import copy
 
 import json
 import numpy as np
+from numpy.exceptions import VisibleDeprecationWarning
 import os
 import pandas as pd
 import scipy.interpolate as interp
@@ -52,7 +53,7 @@ except ImportError:
 
 import warnings
 
-warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
+warnings.filterwarnings("ignore", category=VisibleDeprecationWarning)
 
 # Define default filters variable for import in other parts of the code
 DEFAULT_FILTERS = [
@@ -894,8 +895,8 @@ def metzger_lc(t_day, param_dict, filters=None):
     h = astropy.constants.h.cgs.value
     kb = astropy.constants.k_B.cgs.value
     Msun = astropy.constants.M_sun.cgs.value
-    sigSB = astropy.constants.sigma_sb.cgs.value
-    arad = 4 * sigSB / c
+    sigma_sb = astropy.constants.sigma_sb.cgs.value
+    arad = 4 * sigma_sb / c
     Mpc = astropy.constants.pc.cgs.value * 1e6
 
     # fetch parameters
@@ -1105,7 +1106,7 @@ def metzger_lc(t_day, param_dict, filters=None):
     Ltot = np.abs(Ltotm)
     lbol = Ltotm * 1e40
 
-    Tobs = 1e10 * (Ltot / (4 * np.pi * Rphoto**2 * sigSB)) ** (0.25)
+    Tobs = 1e10 * (Ltot / (4 * np.pi * Rphoto**2 * sigma_sb)) ** (0.25)
 
     ii = np.where(~np.isnan(Tobs) & (Tobs > 0))[0]
     f = interp.interp1d(t_day[ii], Tobs[ii], fill_value="extrapolate")
@@ -1153,7 +1154,7 @@ def blackbody_constant_temperature(t_day, param_dict, filters=None):
     c = astropy.constants.c.cgs.value
     h = astropy.constants.h.cgs.value
     kb = astropy.constants.k_B.cgs.value
-    sigSB = astropy.constants.sigma_sb.cgs.value
+    sigma_sb = astropy.constants.sigma_sb.cgs.value
     Mpc = astropy.constants.pc.cgs.value * 1e6
 
     # fetch parameters
@@ -1167,7 +1168,7 @@ def blackbody_constant_temperature(t_day, param_dict, filters=None):
 
     # parameter conversion
     one_over_T = 1.0 / temperature
-    bb_radius = np.sqrt(bb_luminosity / 4 / np.pi / sigSB) * one_over_T * one_over_T
+    bb_radius = np.sqrt(bb_luminosity / 4 / np.pi / sigma_sb) * one_over_T * one_over_T
     # get the default filters and wavelength
     filts, lambdas = get_default_filts_lambdas(filters=filters)
 
@@ -1261,7 +1262,7 @@ def powerlaw_blackbody_constant_temperature_lc(t_day, param_dict, filters=None):
     c = astropy.constants.c.cgs.value
     h = astropy.constants.h.cgs.value
     kb = astropy.constants.k_B.cgs.value
-    sigSB = astropy.constants.sigma_sb.cgs.value
+    sigma_sb = astropy.constants.sigma_sb.cgs.value
     Mpc = astropy.constants.pc.cgs.value * 1e6
 
     # fetch parameters
@@ -1276,7 +1277,7 @@ def powerlaw_blackbody_constant_temperature_lc(t_day, param_dict, filters=None):
 
     # parameter conversion
     one_over_T = 1.0 / temperature
-    bb_radius = np.sqrt(bb_luminosity / 4 / np.pi / sigSB) * one_over_T * one_over_T
+    bb_radius = np.sqrt(bb_luminosity / 4 / np.pi / sigma_sb) * one_over_T * one_over_T
     # get the default filters and wavelength
     filts, lambdas = get_default_filts_lambdas(filters=filters)
     # calculate the powerlaw prefactor (with the reference filter)
@@ -1827,6 +1828,7 @@ def dEdt_HoNa(t, E, dM, td, be):
 
 
 def lightcurve_HoNa(t, mass, velocities, opacities, n):
+
     # define constants
     c = astropy.constants.c
     sigSB = astropy.constants.sigma_sb
@@ -1845,7 +1847,6 @@ def lightcurve_HoNa(t, mass, velocities, opacities, n):
         raise ValueError(f'Times must be > {t0}')
     if len(velocities) != len(opacities) + 1:
         raise ValueError('len(velocities) must be len(opacities) + 1')
-
     # convert to internal units - using vectorized operations
     t = t.to_value(astropy.units.s)
     t0 = t0.to_value(astropy.units.s)
@@ -1917,3 +1918,14 @@ def lightcurve_HoNa(t, mass, velocities, opacities, n):
     
     # Return results
     return L, T, r.to(astropy.units.cm)
+
+
+def running_in_ci():
+    """
+    Check if the code is running in a GitHub Actions.
+    
+    Returns:
+    --------
+        bool: True if running in CI, False otherwise.
+    """
+    return os.environ.get("CI") == "true"

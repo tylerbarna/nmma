@@ -98,19 +98,32 @@ model_parameters_dict = {
         "vej_wind",
         "KNtheta",
     ],
+    "HoNa2020": [
+        "log10_Mej",
+        "vej_max",
+        "vej_min",
+        "vej_frac",
+        "log10_kappa_low_vej",
+        "log10_kappa_high_vej",
+    ],
 }
 
 
 class LightCurveMixin:
-
     @property
     def citation(self):
-
         citation_dict = {
-            **dict.fromkeys(["LANLTP1", "LANLTP2", "LANLTS1", "LANLTS2"], ["https://arxiv.org/abs/2105.11543"]),
+            **dict.fromkeys(
+                ["LANLTP1", "LANLTP2", "LANLTS1", "LANLTS2"],
+                ["https://arxiv.org/abs/2105.11543"],
+            ),
             "Ka2017": ["https://arxiv.org/abs/1710.05463"],
             **dict.fromkeys(
-                ["Bu2019lm", "Bu2019lm_sparse"], ["https://arxiv.org/abs/2002.11355", "https://arxiv.org/abs/1906.04205"]
+                ["Bu2019lm", "Bu2019lm_sparse"],
+                [
+                    "https://arxiv.org/abs/2002.11355",
+                    "https://arxiv.org/abs/1906.04205",
+                ],
             ),
             **dict.fromkeys(
                 [
@@ -118,20 +131,36 @@ class LightCurveMixin:
                     "AnBa2022_log",
                     "AnBa2022_linear",
                 ],
-                ["https://arxiv.org/abs/2302.09226", "https://arxiv.org/abs/2205.10421"],
+                [
+                    "https://arxiv.org/abs/2302.09226",
+                    "https://arxiv.org/abs/2205.10421",
+                ],
             ),
-            "Bu2019nsbh": ["https://arxiv.org/abs/2009.07210", "https://arxiv.org/abs/1906.04205"],
+            "Bu2019nsbh": [
+                "https://arxiv.org/abs/2009.07210",
+                "https://arxiv.org/abs/1906.04205",
+            ],
             **dict.fromkeys(
-                ["Bu2022Ye", "Bu2023Ye", "Bu2022mv"], ["https://arxiv.org/abs/2307.11080", "https://arxiv.org/abs/1906.04205"]
+                ["Bu2022Ye", "Bu2023Ye", "Bu2022mv"],
+                [
+                    "https://arxiv.org/abs/2307.11080",
+                    "https://arxiv.org/abs/1906.04205",
+                ],
             ),
             "TrPi2018": ["https://arxiv.org/abs/1909.11691"],
             "Piro2021": ["https://arxiv.org/abs/2007.08543"],
             "Me2017": ["https://arxiv.org/abs/1910.01617"],
+            "HoNa2020": ["https://arxiv.org/abs/1909.02581", "https://arxiv.org/abs/1206.2379"],
             "Sr2023": [None],  # TODO: add citation,
-            "nugent-hyper": ["https://sncosmo.readthedocs.io/en/stable/source-list.html"],
-            **dict.fromkeys(["PL_BB_fixedT", "blackbody_fixedT", "synchrotron_powerlaw"], ["Analytical models"]),
+            "nugent-hyper": [
+                "https://sncosmo.readthedocs.io/en/stable/source-list.html"
+            ],
+            **dict.fromkeys(
+                ["PL_BB_fixedT", "blackbody_fixedT", "synchrotron_powerlaw"],
+                ["Analytical models"],
+            ),
         }
-        
+
         return {self.model: citation_dict[self.model]}
 
 
@@ -149,7 +178,6 @@ class GenericCombineLightCurveModel(LightCurveMixin):
         return citations
 
     def generate_lightcurve(self, sample_times, parameters, return_all=False):
-
         total_lbol = np.zeros(len(sample_times))
         total_mag = {}
         mag_per_model = []
@@ -237,9 +265,10 @@ class SVDLightCurveModel(LightCurveMixin):
         filters=None,
         local_only=False,
     ):
-
         if model_parameters is None:
-            assert model in model_parameters_dict.keys(), "Unknown model," "please update model_parameters_dict at em/model.py"
+            assert model in model_parameters_dict.keys(), (
+                "Unknown model,please update model_parameters_dict at em/model.py"
+            )
             self.model_parameters = model_parameters_dict[model]
         else:
             self.model_parameters = model_parameters
@@ -266,7 +295,9 @@ class SVDLightCurveModel(LightCurveMixin):
 
         if self.interpolation_type == "sklearn_gp":
             if not local_only:
-                _, model_filters = get_model(self.svd_path, f"{self.model}", filters=filters)
+                _, model_filters = get_model(
+                    self.svd_path, f"{self.model}", filters=filters
+                )
                 if filters is None and model_filters is not None:
                     self.filters = model_filters
 
@@ -302,7 +333,9 @@ class SVDLightCurveModel(LightCurveMixin):
                 self.svd_mag_model = joblib.load(modelfile)
                 for filt in self.filters:
                     for ii in range(len(self.svd_mag_model[filt]["gps"])):
-                        self.svd_mag_model[filt]["gps"][ii] = load_api_gp_model(self.svd_mag_model[filt]["gps"][ii])
+                        self.svd_mag_model[filt]["gps"][ii] = load_api_gp_model(
+                            self.svd_mag_model[filt]["gps"][ii]
+                        )
                 self.svd_lbol_model = None
         elif self.interpolation_type == "tensorflow":
             import tensorflow as tf
@@ -311,7 +344,9 @@ class SVDLightCurveModel(LightCurveMixin):
             from keras.models import load_model
 
             if not local_only:
-                _, model_filters = get_model(self.svd_path, f"{self.model}_tf", filters=filters)
+                _, model_filters = get_model(
+                    self.svd_path, f"{self.model}_tf", filters=filters
+                )
                 if filters is None:
                     self.filters = model_filters
 
@@ -331,8 +366,12 @@ class SVDLightCurveModel(LightCurveMixin):
                         self.svd_mag_model[filt]["model"] = None
                     else:
                         print(f"Loaded filter {filt}")
-                        self.svd_mag_model[filt]["model"] = load_model(outfile, compile=False)
-                        self.svd_mag_model[filt]["model"].compile(optimizer="adam", loss="mse")
+                        self.svd_mag_model[filt]["model"] = load_model(
+                            outfile, compile=False
+                        )
+                        self.svd_mag_model[filt]["model"].compile(
+                            optimizer="adam", loss="mse"
+                        )
                 self.svd_lbol_model = None
             else:
                 if local_only:
@@ -345,11 +384,15 @@ class SVDLightCurveModel(LightCurveMixin):
             return ValueError("--interpolation-type must be sklearn_gp or tensorflow")
 
     def __repr__(self):
-        return self.__class__.__name__ + "(model={0}, svd_path={1})".format(self.model, self.svd_path)
+        return self.__class__.__name__ + "(model={0}, svd_path={1})".format(
+            self.model, self.svd_path
+        )
 
     def observation_angle_conversion(self, parameters):
         if "KNtheta" not in parameters:
-            parameters["KNtheta"] = parameters.get("inclination_EM", 0.0) * 180.0 / np.pi
+            parameters["KNtheta"] = (
+                parameters.get("inclination_EM", 0.0) * 180.0 / np.pi
+            )
         return parameters
 
     def generate_lightcurve(self, sample_times, parameters):
@@ -367,9 +410,13 @@ class SVDLightCurveModel(LightCurveMixin):
                 parameters_list.append(new_parameters[parameter_name])
             except KeyError:
                 if "log10" in parameter_name:
-                    parameters_list.append(np.log10(new_parameters[parameter_name.replace("log10_", "")]))
+                    parameters_list.append(
+                        np.log10(new_parameters[parameter_name.replace("log10_", "")])
+                    )
                 else:
-                    parameters_list.append(10 ** new_parameters[f"log10_{parameter_name}"])
+                    parameters_list.append(
+                        10 ** new_parameters[f"log10_{parameter_name}"]
+                    )
 
         z = utils.getRedShift(new_parameters)
 
@@ -468,7 +515,9 @@ class GRBLightCurveModel(LightCurveMixin):
             give a set of parameters
         """
 
-        assert model in model_parameters_dict.keys(), "Unknown model," "please update model_parameters_dict at em/model.py"
+        assert model in model_parameters_dict.keys(), (
+            "Unknown model,please update model_parameters_dict at em/model.py"
+        )
         self.model = model
         self.model_parameters = model_parameters_dict[model]
         self.sample_times = sample_times
@@ -516,14 +565,18 @@ class GRBLightCurveModel(LightCurveMixin):
             grb_param_dict["E0"] = 10 ** new_parameters["log10_E0"]
         else:
             # additional parameters
-            energy_injection_params = ['energy_exponential', 'log10_Eend',
-                                       't_start', 'injection_duration']
+            energy_injection_params = [
+                "energy_exponential",
+                "log10_Eend",
+                "t_start",
+                "injection_duration",
+            ]
             assert all(key in new_parameters for key in energy_injection_params)
             # fetch parameters
-            log10_Eend = new_parameters['log10_Eend']
-            t_start = new_parameters['t_start']
-            t_end = new_parameters['t_start'] + new_parameters['injection_duration']
-            energy_exponential = new_parameters['energy_exponential']
+            log10_Eend = new_parameters["log10_Eend"]
+            t_start = new_parameters["t_start"]
+            t_end = new_parameters["t_start"] + new_parameters["injection_duration"]
+            energy_exponential = new_parameters["energy_exponential"]
             # populate the E0 along the sample_times
             log10_Estart = log10_Eend + energy_exponential * np.log10(t_start / t_end)
             log10_E0 = log10_Eend * np.ones(len(sample_times))
@@ -532,17 +585,20 @@ class GRBLightCurveModel(LightCurveMixin):
             log10_E0[sample_times >= t_end] = log10_Eend
             mask = (sample_times > t_start) * (sample_times < t_end)
             time_scale = np.log10(sample_times / t_end)
-            log10_E0[mask] = log10_Eend + energy_exponential * time_scale[mask] 
+            log10_E0[mask] = log10_Eend + energy_exponential * time_scale[mask]
             # now place the array into the param_dict
-            grb_param_dict["E0"] = 10 ** log10_E0
+            grb_param_dict["E0"] = 10**log10_E0
         # make sure L0, q and ts are also passed
-        for param in ['L0', 'q', 'ts']:
+        for param in ["L0", "q", "ts"]:
             if param in new_parameters:
                 grb_param_dict[param] = new_parameters[param]
 
         if "thetaWing" in new_parameters:
             grb_param_dict["thetaWing"] = new_parameters["thetaWing"]
-            if new_parameters["thetaWing"] / new_parameters["thetaCore"] > self.resolution:
+            if (
+                new_parameters["thetaWing"] / new_parameters["thetaCore"]
+                > self.resolution
+            ):
                 return np.zeros(len(sample_times)), {}
 
         if grb_param_dict["epsilon_e"] + grb_param_dict["epsilon_B"] > 1.0:
@@ -555,7 +611,9 @@ class GRBLightCurveModel(LightCurveMixin):
 
         Ebv = new_parameters.get("Ebv", 0.0)
 
-        _, lbol, mag = utils.grb_lc(sample_times, Ebv, grb_param_dict, filters=self.filters)
+        _, lbol, mag = utils.grb_lc(
+            sample_times, Ebv, grb_param_dict, filters=self.filters
+        )
         return lbol, mag
 
 
@@ -568,7 +626,6 @@ class KilonovaGRBLightCurveModel(LightCurveMixin):
         GRB_resolution=12,
         jetType=0,
     ):
-
         self.sample_times = sample_times
         self.parameter_conversion = kilonova_kwargs["parameter_conversion"]
 
@@ -584,7 +641,9 @@ class KilonovaGRBLightCurveModel(LightCurveMixin):
         )
 
     def __repr__(self):
-        details = "(grb model using afterglowpy with kilonova model {0})".format(self.kilonova_lightcurve_model)
+        details = "(grb model using afterglowpy with kilonova model {0})".format(
+            self.kilonova_lightcurve_model
+        )
         return self.__class__.__name__ + details
 
     @property
@@ -595,7 +654,6 @@ class KilonovaGRBLightCurveModel(LightCurveMixin):
         return citations
 
     def observation_angle_conversion(self, parameters):
-
         parameters["KNtheta"] = parameters["inclination_EM"] * 180.0 / np.pi
 
         return parameters
@@ -612,7 +670,9 @@ class KilonovaGRBLightCurveModel(LightCurveMixin):
 
         new_parameters = self.observation_angle_conversion(new_parameters)
 
-        grb_lbol, grb_mag = self.grb_lightcurve_model.generate_lightcurve(sample_times, new_parameters)
+        grb_lbol, grb_mag = self.grb_lightcurve_model.generate_lightcurve(
+            sample_times, new_parameters
+        )
 
         if np.sum(grb_lbol) == 0.0 or len(np.isfinite(grb_lbol)) == 0:
             return total_lbol, total_mag
@@ -620,7 +680,9 @@ class KilonovaGRBLightCurveModel(LightCurveMixin):
         (
             kilonova_lbol,
             kilonova_mag,
-        ) = self.kilonova_lightcurve_model.generate_lightcurve(sample_times, new_parameters)
+        ) = self.kilonova_lightcurve_model.generate_lightcurve(
+            sample_times, new_parameters
+        )
 
         for filt in grb_mag.keys():
             grb_mAB = grb_mag[filt]
@@ -688,7 +750,6 @@ class HostGalaxyLightCurveModel(LightCurveMixin):
         return self.__class__.__name__ + "(model={self.model})"
 
     def generate_lightcurve(self, sample_times, parameters):
-
         if self.parameter_conversion:
             new_parameters = parameters.copy()
             new_parameters, _ = self.parameter_conversion(new_parameters, [])
@@ -743,7 +804,6 @@ class SupernovaLightCurveModel(LightCurveMixin):
         return self.__class__.__name__ + "(model={self.model})"
 
     def generate_lightcurve(self, sample_times, parameters):
-
         if self.parameter_conversion:
             new_parameters = parameters.copy()
             new_parameters, _ = self.parameter_conversion(new_parameters, [])
@@ -780,7 +840,6 @@ class SupernovaGRBLightCurveModel(LightCurveMixin):
         GRB_resolution=12,
         jetType=0,
     ):
-
         self.sample_times = sample_times
 
         self.grb_lightcurve_model = GRBLightCurveModel(
@@ -789,7 +848,9 @@ class SupernovaGRBLightCurveModel(LightCurveMixin):
             resolution=GRB_resolution,
             jetType=jetType,
         )
-        self.supernova_lightcurve_model = SupernovaLightCurveModel(sample_times, parameter_conversion, model=SNmodel)
+        self.supernova_lightcurve_model = SupernovaLightCurveModel(
+            sample_times, parameter_conversion, model=SNmodel
+        )
 
     def __repr__(self):
         details = "(grb model using afterglowpy with supernova model nugent-hyper)"
@@ -797,16 +858,20 @@ class SupernovaGRBLightCurveModel(LightCurveMixin):
 
     @property
     def citation(self):
-        citations = [self.grb_lightcurve_model.citation, self.supernova_lightcurve_model.citation]
+        citations = [
+            self.grb_lightcurve_model.citation,
+            self.supernova_lightcurve_model.citation,
+        ]
 
         return citations
 
     def generate_lightcurve(self, sample_times, parameters):
-
         total_lbol = np.zeros(len(sample_times))
         total_mag = {}
 
-        grb_lbol, grb_mag = self.grb_lightcurve_model.generate_lightcurve(sample_times, parameters)
+        grb_lbol, grb_mag = self.grb_lightcurve_model.generate_lightcurve(
+            sample_times, parameters
+        )
 
         if np.sum(grb_lbol) == 0.0 or len(np.isfinite(grb_lbol)) == 0:
             return total_lbol, total_mag
@@ -814,7 +879,9 @@ class SupernovaGRBLightCurveModel(LightCurveMixin):
         (
             supernova_lbol,
             supernova_mag,
-        ) = self.supernova_lightcurve_model.generate_lightcurve(sample_times, parameters)
+        ) = self.supernova_lightcurve_model.generate_lightcurve(
+            sample_times, parameters
+        )
 
         if np.sum(supernova_lbol) == 0.0 or len(np.isfinite(supernova_lbol)) == 0:
             return total_lbol, total_mag
@@ -839,7 +906,9 @@ class SupernovaGRBLightCurveModel(LightCurveMixin):
 
 
 class ShockCoolingLightCurveModel(LightCurveMixin):
-    def __init__(self, sample_times, parameter_conversion=None, model="Piro2021", filters=None):
+    def __init__(
+        self, sample_times, parameter_conversion=None, model="Piro2021", filters=None
+    ):
         """A light curve model object
 
         An object to evaluted the shock cooling light curve across filters
@@ -856,7 +925,9 @@ class ShockCoolingLightCurveModel(LightCurveMixin):
             give a set of parameters
         """
 
-        assert model in model_parameters_dict.keys(), "Unknown model," "please update model_parameters_dict at em/model.py"
+        assert model in model_parameters_dict.keys(), (
+            "Unknown model,please update model_parameters_dict at em/model.py"
+        )
         self.model = model
         self.model_parameters = model_parameters_dict[model]
         self.sample_times = sample_times
@@ -867,7 +938,6 @@ class ShockCoolingLightCurveModel(LightCurveMixin):
         return self.__class__.__name__ + "(model={0})".format(self.model)
 
     def generate_lightcurve(self, sample_times, parameters):
-
         if self.parameter_conversion:
             new_parameters = parameters.copy()
             new_parameters, _ = self.parameter_conversion(new_parameters, [])
@@ -889,25 +959,32 @@ class ShockCoolingLightCurveModel(LightCurveMixin):
 
 class SupernovaShockCoolingLightCurveModel(LightCurveMixin):
     def __init__(self, sample_times, parameter_conversion=None, filters=None):
-
         self.sample_times = sample_times
 
-        self.sc_lightcurve_model = ShockCoolingLightCurveModel(sample_times, parameter_conversion)
-        self.supernova_lightcurve_model = SupernovaLightCurveModel(sample_times, parameter_conversion)
+        self.sc_lightcurve_model = ShockCoolingLightCurveModel(
+            sample_times, parameter_conversion
+        )
+        self.supernova_lightcurve_model = SupernovaLightCurveModel(
+            sample_times, parameter_conversion
+        )
         self.filters = filters
 
     def __repr__(self):
-        details = "(shock cooling model using Piro2021 with supernova model nugent-hyper)"
+        details = (
+            "(shock cooling model using Piro2021 with supernova model nugent-hyper)"
+        )
         return self.__class__.__name__ + details
 
     @property
     def citation(self):
-        citations = [self.sc_lightcurve_model.citation, self.supernova_lightcurve_model.citation]
+        citations = [
+            self.sc_lightcurve_model.citation,
+            self.supernova_lightcurve_model.citation,
+        ]
 
         return citations
 
     def generate_lightcurve(self, sample_times, parameters):
-
         total_lbol = np.zeros(len(sample_times))
         total_mag = {}
 
@@ -952,7 +1029,9 @@ class SupernovaShockCoolingLightCurveModel(LightCurveMixin):
 
 
 class SimpleKilonovaLightCurveModel(LightCurveMixin):
-    def __init__(self, sample_times, parameter_conversion=None, model="Me2017", filters=None):
+    def __init__(
+        self, sample_times, parameter_conversion=None, model="Me2017", filters=None
+    ):
         """A light curve model object
 
         An object to evaluted the kilonova (with Me2017 or HoNa2020) light curve across filters
@@ -969,7 +1048,9 @@ class SimpleKilonovaLightCurveModel(LightCurveMixin):
             give a set of parameters
         """
 
-        assert model in model_parameters_dict.keys(), "Unknown model," "please update model_parameters_dict at em/model.py"
+        assert model in model_parameters_dict.keys(), (
+            "Unknown model,please update model_parameters_dict at em/model.py"
+        )
         self.model = model
         self.model_parameters = model_parameters_dict[model]
         self.sample_times = sample_times
@@ -980,7 +1061,6 @@ class SimpleKilonovaLightCurveModel(LightCurveMixin):
         return self.__class__.__name__ + "(model={0})".format(self.model)
 
     def generate_lightcurve(self, sample_times, parameters):
-
         if self.parameter_conversion:
             new_parameters = parameters.copy()
             new_parameters, _ = self.parameter_conversion(new_parameters, [])
@@ -992,12 +1072,15 @@ class SimpleKilonovaLightCurveModel(LightCurveMixin):
 
         param_dict = {}
         for key in self.model_parameters:
+
             param_dict[key] = new_parameters[key]
         param_dict["z"] = z
         param_dict["Ebv"] = Ebv
 
         if self.model == "Me2017":
-            _, lbol, mag = utils.metzger_lc(sample_times, param_dict, filters=self.filters)
+            _, lbol, mag = utils.metzger_lc(
+                sample_times, param_dict, filters=self.filters
+            )
         elif self.model == "HoNa2020":
             default_parameters = {"n": 4.5}
             for key in default_parameters.keys():
@@ -1021,11 +1104,17 @@ class SimpleKilonovaLightCurveModel(LightCurveMixin):
             param_dict["temperature"] = T.si.value
             _, lbol, mag = utils.blackbody_constant_temperature(sample_times, param_dict, filters=self.filters)
         elif self.model == "PL_BB_fixedT":
-            _, lbol, mag = utils.powerlaw_blackbody_constant_temperature_lc(sample_times, param_dict, filters=self.filters)
+            _, lbol, mag = utils.powerlaw_blackbody_constant_temperature_lc(
+                sample_times, param_dict, filters=self.filters
+            )
         elif self.model == "blackbody_fixedT":
-            _, lbol, mag = utils.blackbody_constant_temperature(sample_times, param_dict, filters=self.filters)
+            _, lbol, mag = utils.blackbody_constant_temperature(
+                sample_times, param_dict, filters=self.filters
+            )
         elif self.model == "synchrotron_powerlaw":
-            _, lbol, mag = utils.synchrotron_powerlaw(sample_times, param_dict, filters=self.filters)
+            _, lbol, mag = utils.synchrotron_powerlaw(
+                sample_times, param_dict, filters=self.filters
+            )
             # remove the distance modulus for the synchrotron powerlaw
             # as the reference flux is defined at the observer
             dist_mod = 5.0 * np.log10(new_parameters["luminosity_distance"] * 1e6 / 10)
@@ -1078,7 +1167,7 @@ def create_light_curve_model_from_args(
                 jetType=args.jet_type,
                 parameter_conversion=parameter_conversion,
                 filters=filters,
-                energy_injection=args.energy_injection
+                energy_injection=args.energy_injection,
             )
 
         elif model_name in sncosmo_names:
@@ -1096,7 +1185,11 @@ def create_light_curve_model_from_args(
                 filters=filters,
             )
 
-        elif (model_name == "Me2017" or model_name == "PL_BB_fixedT" or model_name == 'HoNa2020'):
+        elif (
+            model_name == "Me2017"
+            or model_name == "PL_BB_fixedT"
+            or model_name == "HoNa2020"
+        ):
             lc_model = SimpleKilonovaLightCurveModel(
                 sample_times=sample_times,
                 model=model_name,
