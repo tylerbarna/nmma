@@ -231,7 +231,7 @@ class NSBHEjectaFitting(object):
             converted_parameters["log10_mej"][invalid_index] = -np.inf
 
         else:
-            if compactness_2 == 0.5 or (not np.isfinite(log_mej_dyn)):
+            if compactness_2 == 0.5 or (not np.isfinite(log10_mej_dyn)):
                 converted_parameters["log10_mej_dyn"] = -np.inf
                 converted_parameters["log10_mej_wind"] = -np.inf
                 converted_parameters["log10_mej"] = -np.inf
