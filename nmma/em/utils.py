@@ -1829,6 +1829,14 @@ def dEdt_HoNa(t, E, dM, td, be):
 
 def lightcurve_HoNa(t, mass, velocities, opacities, n):
 
+    # check input quantity type
+    assert (
+            isinstance(mass, float)
+            and isinstance(velocities, list)
+            and all(isinstance(x, float) for x in velocities)
+            and isinstance(opacities, list)
+            and all(isinstance(x, float) for x in opacities)
+        ), 'Expected: mass=float, velocities/opacities=list[float]'
     # define constants
     c = astropy.constants.c
     sigSB = astropy.constants.sigma_sb
@@ -1843,10 +1851,12 @@ def lightcurve_HoNa(t, mass, velocities, opacities, n):
     t0 = 5e-2 * astropy.units.day
     opacities = np.atleast_1d(opacities)
     
-    if np.any(t <= t0):
-        raise ValueError(f'Times must be > {t0}')
-    if len(velocities) != len(opacities) + 1:
-        raise ValueError('len(velocities) must be len(opacities) + 1')
+    assert np.all(t > t0), (
+        f'Times must be > {t0}'
+    )
+    assert len(velocities) == len(opacities) + 1, (
+        'len(velocities) must be len(opacities) + 1'
+    )
     # convert to internal units - using vectorized operations
     t = t.to_value(astropy.units.s)
     t0 = t0.to_value(astropy.units.s)
