@@ -1330,7 +1330,7 @@ def nnanalysis(args):
 
         if args.injection_outfile is not None:
             if filters is not None:
-                if args.injection_detection_limit is None:
+                if args.injection_detection_limit is not None:
                     detection_limit = {
                         x: float(y)
                         for x, y in zip(

@@ -58,6 +58,7 @@ def args():
         ignore_timeshift=False,
         remove_nondetections=True,
         detection_limit=None,
+        detection_limit_fits_file=None,
         with_grb_injection=False,
         prompt_collapse=False,
         ztf_sampling=False,

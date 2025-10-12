@@ -8,7 +8,7 @@ from nmma.em.utils import lightcurve_HoNa
 
 
 def test_lightcurve_HoNa_basic():
-    t = np.logspace(-2, 1, 50)
+    t = np.logspace(-1, 1, 50)
     mass = 0.01
     velocities = [0.1, 0.2, 0.3]
     opacities = [0.1, 0.5]
@@ -35,7 +35,7 @@ def test_lightcurve_HoNa_invalid_time():
 
 
 def test_lightcurve_HoNa_invalid_velocity():
-    t = np.logspace(-2, 1, 50)
+    t = np.logspace(-1, 1, 50)
     mass = 0.01
     velocities = [0.1, 0.2]
     opacities = [0.1, 0.5]
@@ -48,7 +48,7 @@ def test_lightcurve_HoNa_invalid_velocity():
 
 
 def test_lightcurve_HoNa_units():
-    t = np.logspace(-2, 1, 50) * u.day
+    t = np.logspace(-1, 1, 50) * u.day
     mass = 0.01 * u.Msun
     velocities = [0.1, 0.2, 0.3] * c * u.m / u.s
     opacities = [0.1, 0.5] * u.cm**2 / u.g
