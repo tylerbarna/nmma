@@ -398,7 +398,7 @@ def get_parser(**kwargs):
     )
     parser.add_argument(
         "--detection-limit-fits-file",
-        help="Fits file output from m4opt which contain the detection limit of a givensky location"
+        help="Fits file output from m4opt which contain the detection limit of a given sky location"
     )
     parser.add_argument(
         "--cosiota-node-num",
