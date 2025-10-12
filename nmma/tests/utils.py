@@ -50,7 +50,7 @@ def test_lightcurve_HoNa_invalid_velocity():
 def test_lightcurve_HoNa_units():
     t = np.logspace(-1, 1, 50) * u.day
     mass = 0.01 * u.Msun
-    velocities = [0.1, 0.2, 0.3] * c * u.m / u.s
+    velocities = [0.1 * c, 0.2 * c, 0.3 * c] * u.m / u.s
     opacities = [0.1, 0.5] * u.cm**2 / u.g
     n = 3.5
     with pytest.raises(u.core.UnitConversionError, match="dimensionless"):
