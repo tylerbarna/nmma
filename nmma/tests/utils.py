@@ -55,6 +55,6 @@ def test_lightcurve_HoNa_types():
     n = 3.5
     with pytest.raises(
         AssertionError,
-        match="Expected: mass=float, velocities/opacities=list[float]"
+        match=re.escape("Expected: mass=float, velocities/opacities=list[float]")
     ):
         lightcurve_HoNa(t, mass, velocities, opacities, n)
