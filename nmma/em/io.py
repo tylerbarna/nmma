@@ -1,7 +1,9 @@
 import json
 import astropy
+from astropy.io import fits
 from astropy.time import Time
 import h5py
+import healpy as hp
 import numpy as np
 import pandas as pd
 from scipy.interpolate import interpolate as interp
@@ -298,3 +300,52 @@ def read_lightcurve_file(filename: str) -> dict:
     df.rename(columns={"t[days]": "t"}, inplace=True)
 
     return df.to_dict(orient="series")
+
+
+def detection_limit_from_m4opt_fits_file(fits_file, ra, dec):
+    # Open the FITS file
+    hdul = fits.open(fits_file)
+    # Get the BinTableHDU containing the HEALPix data
+    bintable = hdul[1]  # Assuming it's the first extension
+    # Extract the LIMMAG data and flatten it
+    limmag_data = bintable.data['LIMMAG']
+    limmag_map = limmag_data.flatten()
+    
+    # Get NSIDE from the header
+    nside = bintable.header['NSIDE']  # Should be 128 based on your header
+    
+    # Function to get limiting magnitude at a specific sky location
+    def get_limmag_at_position(ra_deg, dec_deg, limmag_map, nside):
+        """
+        Get the limiting magnitude at a specific RA, Dec position
+        
+        Parameters:
+        -----------
+        ra_deg : float
+            Right Ascension in degrees
+        dec_deg : float
+            Declination in degrees
+        limmag_map : array
+            The HEALPix map containing limiting magnitude values
+        nside : int
+            The HEALPix NSIDE parameter
+            
+        Returns:
+        --------
+        float
+            The limiting magnitude at the requested position
+        """
+        # Convert RA, Dec to theta, phi (HEALPix angular coordinates)
+        # theta: co-latitude (0 at north pole, pi at south pole)
+        # phi: longitude (0 to 2*pi)
+        theta = np.radians(90.0 - dec_deg)  # Convert Dec to co-latitude
+        phi = np.radians(ra_deg)            # RA is already longitude-like
+        
+        # Get the corresponding HEALPix pixel index
+        # nest=True because your map uses NESTED ordering
+        pixel_idx = hp.ang2pix(nside, theta, phi, nest=True)
+        
+        # Return the value at that pixel
+        return limmag_map[pixel_idx]
+
+    return get_limmag_at_position(ra, dec, limmag_map, nside)

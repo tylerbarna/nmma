@@ -8,10 +8,10 @@ from nmma.em.utils import lightcurve_HoNa
 
 
 def test_lightcurve_HoNa_basic():
-    t = np.logspace(-2, 1, 50)
+    t = np.logspace(-1, 1, 50)
     mass = 0.01
-    velocities = np.array([0.1, 0.2, 0.3])
-    opacities = np.array([0.1, 0.5])
+    velocities = [0.1, 0.2, 0.3]
+    opacities = [0.1, 0.5]
     n = 3.5
     L, T, r = lightcurve_HoNa(t, mass, velocities, opacities, n)
 
@@ -26,33 +26,35 @@ def test_lightcurve_HoNa_basic():
 def test_lightcurve_HoNa_invalid_time():
     t = np.array([1e-4, 0.1, 1])
     mass = 0.01
-    velocities = np.array([0.1, 0.2, 0.3])
-    opacities = np.array([0.1, 0.5])
+    velocities = [0.1, 0.2, 0.3]
+    opacities = [0.1, 0.5]
     n = 3.5
 
-    with pytest.raises(ValueError, match="Times must be >"):
+    with pytest.raises(AssertionError, match="Times must be >"):
         lightcurve_HoNa(t, mass, velocities, opacities, n)
 
 
 def test_lightcurve_HoNa_invalid_velocity():
-    t = np.logspace(-2, 1, 50)
+    t = np.logspace(-1, 1, 50)
     mass = 0.01
-    velocities = np.array([0.1, 0.2])
-    opacities = np.array([0.1, 0.5])
+    velocities = [0.1, 0.2]
+    opacities = [0.1, 0.5]
     n = 3.5
 
     with pytest.raises(
-        ValueError, match=re.escape("len(velocities) must be len(opacities) + 1")
+        AssertionError, match=re.escape("len(velocities) must be len(opacities) + 1")
     ):
         lightcurve_HoNa(t, mass, velocities, opacities, n)
 
 
-def test_lightcurve_HoNa_units():
-    t = np.logspace(-2, 1, 50) * u.day
-    mass = 0.01 * u.Msun
-    velocities = np.array([0.1, 0.2, 0.3]) * c * u.m / u.s
-    opacities = np.array([0.1, 0.5]) * u.cm**2 / u.g
+def test_lightcurve_HoNa_types():
+    t = np.logspace(-1, 1, 50)
+    mass = int(1)  # Wrong type (int instead of float)
+    velocities = np.array([0.1, 0.2, 0.3])  # Wrong type (array instead of list)
+    opacities = np.array([0.1, 0.5])  # Wrong type (array instead of list)
     n = 3.5
-    with pytest.raises(u.core.UnitConversionError, match="dimensionless"):
-        # input args should be dimensionless
+    with pytest.raises(
+        AssertionError,
+        match=re.escape("Expected: mass=float, velocities/opacities=list[float]")
+    ):
         lightcurve_HoNa(t, mass, velocities, opacities, n)

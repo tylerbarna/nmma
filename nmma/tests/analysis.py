@@ -33,6 +33,7 @@ def args():
         tmin=0.1,
         tmax=10.0,
         dt=0.5,
+        dt_inj=0.5,
         log_space_time=False,
         photometric_error_budget=0.1,
         soft_init=False,
@@ -57,6 +58,7 @@ def args():
         ignore_timeshift=False,
         remove_nondetections=True,
         detection_limit=None,
+        detection_limit_fits_file=None,
         with_grb_injection=False,
         prompt_collapse=False,
         ztf_sampling=False,
@@ -133,6 +135,7 @@ def test_nn_analysis(args):
     args.sampler = "neuralnet"
     args.prior = "priors/Ka2017.prior"
     args.dt = 0.25
+    args.dt_inj= 0.25
     args.filters = "ztfg,ztfr,ztfi"
     args.local_only = False
     args.injection = f"{DATA_DIR}/Ka2017_injection.json"

@@ -22,7 +22,7 @@ from .likelihood import OpticalLightCurve
 from .model import create_light_curve_model_from_args, model_parameters_dict
 from .prior import create_prior_from_args
 from .utils import getFilteredMag, dataProcess
-from .io import loadEvent
+from .io import loadEvent, detection_limit_from_m4opt_fits_file
 
 matplotlib.use("agg")
 
@@ -88,6 +88,9 @@ def get_parser(**kwargs):
     )
     parser.add_argument(
         "--dt", type=float, default=0.1, help="Time step in day (default: 0.1)"
+    )
+    parser.add_argument(
+        "--dt-inj", type=float, default=1, help="Time step in day for injection (default: 1.0)"
     )
     parser.add_argument(
         "--log-space-time",
@@ -394,6 +397,10 @@ def get_parser(**kwargs):
         help="Fits file output from Bayestar, to be used for constructing dL-iota prior"
     )
     parser.add_argument(
+        "--detection-limit-fits-file",
+        help="Fits file output from m4opt which contain the detection limit of a given sky location"
+    )
+    parser.add_argument(
         "--cosiota-node-num",
         help="Number of cos-iota nodes used in the Bayestar fits (default: 10)",
         default=10,
@@ -507,7 +514,8 @@ def analysis(args):
                 f, object_hook=bilby.core.utils.decode_bilby_json
             )
         injection_df = injection_dict["injections"]
-        injection_parameters = injection_df.iloc[args.injection_num].to_dict()
+        row = injection_df.loc[injection_df['simulation_id'] == args.injection_num]  
+        injection_parameters = row.squeeze().to_dict()
 
         if "geocent_time" in injection_parameters:
             tc_gps = time.Time(injection_parameters["geocent_time"], format="gps")
@@ -560,7 +568,7 @@ def analysis(args):
 
         args.kilonova_tmin = args.tmin
         args.kilonova_tmax = args.tmax
-        args.kilonova_tstep = args.dt
+        args.kilonova_tstep = args.dt_inj
         args.kilonova_error = args.photometric_error_budget
 
         if not args.injection_model:
@@ -582,7 +590,7 @@ def analysis(args):
         data = create_light_curve_data(
             injection_parameters, args, light_curve_model=injection_model
         )
-        print("Injection generated")
+        print(f"Injection generated with parameters {injection_parameters}")
 
         #checking produced data for magnitudes dimmer than the detection limit
         if filters is not None:
@@ -591,6 +599,16 @@ def analysis(args):
                     detection_limit = {'ps1__g':25.8,'ps1__r':25.5,'ps1__i':24.8,'ps1__z':24.1,'ps1__y':22.9}
                 #elif args.ztf_sampling:
                 #    detection_limit = {}
+                elif args.detection_limit_fits_file is not None:
+                    limit_given_radec = detection_limit_from_m4opt_fits_file(
+                        args.detection_limit_fits_file, args.ra, args.dec
+                    )
+                    print(f"Detection limit from {args.detection_limit_fits_file} is used")
+                    print(f"Given ra:{args.ra} and dec:{args.dec}, the limiting mag is {limit_given_radec}")
+                    detection_limit = {
+                        x: float(limit_given_radec)
+                        for x in filters
+                    }
                 else:
                     detection_limit = {x: np.inf for x in filters}
             else:
@@ -1086,11 +1104,10 @@ def analysis(args):
             )
 
             idx = np.where(~np.isfinite(sigma_y))[0]
-            ax_sum.errorbar(
+            ax_sum.scatter(
                 t[idx],
                 y[idx],
-                sigma_y[idx],
-                fmt="v",
+                marker="v",
                 color=color,
             )
   
@@ -1284,7 +1301,7 @@ def nnanalysis(args):
 
         args.kilonova_tmin = args.tmin
         args.kilonova_tmax = args.tmax
-        args.kilonova_tstep = args.dt
+        args.kilonova_tstep = args.dt_inj
         args.kilonova_error = args.photometric_error_budget
 
         current_points = int(round(args.tmax - args.tmin))/args.dt + 1
@@ -1313,9 +1330,7 @@ def nnanalysis(args):
 
         if args.injection_outfile is not None:
             if filters is not None:
-                if args.injection_detection_limit is None:
-                    detection_limit = {x: np.inf for x in filters}
-                else:
+                if args.injection_detection_limit is not None:
                     detection_limit = {
                         x: float(y)
                         for x, y in zip(
@@ -1323,6 +1338,18 @@ def nnanalysis(args):
                             args.injection_detection_limit.split(","),
                         )
                     }
+                elif args.detection_limit_fits_file is not None:
+                    limit_given_radec = detection_limit_from_m4opt_fits_file(
+                        args.detection_limit_fits_file, args.ra, args.dec
+                    )
+                    print(f"Detection limit from {args.detection_limit_fits_file} is used")
+                    print(f"Given ra:{args.ra} and dec:{args.dec}, the limiting mag is {limit_given_radec}")
+                    detection_limit = {
+                        x: float(limit_given_radec)
+                        for x in filters
+                    }
+                else:
+                    detection_limit = {x: np.inf for x in filters}
             else:
                 detection_limit = {}
             data_out = np.empty((0, 6))

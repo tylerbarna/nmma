@@ -25,6 +25,13 @@ import matplotlib.pyplot as plt
 from nmma.em.training import SVDTrainingModel
 
 try:
+    from m4opt.missions import uvex
+    M4OPT_INSTALLED = True
+except:
+    M4OPT_INSTALLED = False
+    print("Install m4opt if you want to use uvex filters")
+
+try:
     import afterglowpy
 
     AFTERGLOWPY_INSTALLED = True
@@ -200,6 +207,8 @@ def getFilteredMag(mag, filt):
         "swope2__y",
         "swope2__J",
         "swope2__H",
+        "FUV",
+        "NUV",
     ]
     sncosmo_filts = [val["name"] for val in get_all_bandpass_metadata()]
     sncosmo_maps = {
@@ -345,6 +354,15 @@ def get_default_filts_lambdas(filters=None):
 
     filts = filts + [band.name for band in bandpasses]
     lambdas = np.concatenate([lambdas, [1e-10 * band.wave_eff for band in bandpasses]])
+    if M4OPT_INSTALLED:
+        fuv_bandpass = uvex.detector.bandpasses['FUV']
+        nuv_bandpass = uvex.detector.bandpasses['NUV']
+
+        fuv_lambda = 1e-10 * fuv_bandpass.avgwave().value
+        nuv_lambda = 1e-10 * nuv_bandpass.avgwave().value
+
+        filts = filts + ['FUV', 'NUV']
+        lambdas = np.concatenate([lambdas, [fuv_lambda, nuv_lambda]])
 
     if filters is not None:
         filts_slice = []
@@ -1811,24 +1829,34 @@ def dEdt_HoNa(t, E, dM, td, be):
 
 def lightcurve_HoNa(t, mass, velocities, opacities, n):
 
-    
-    # Validate arguments
-    t0 = 1e-3 * astropy.units.day
-    opacities = np.atleast_1d(opacities)
-    if np.any(t <= t0.to_value(astropy.units.day)):
-        raise ValueError(f'Times must be > {t0}')
-    if len(velocities) != len(opacities) + 1:
-        raise ValueError('len(velocities) must be len(opacities) + 1')
+    # check input quantity type
+    assert (
+            isinstance(mass, float)
+            and isinstance(velocities, list)
+            and all(isinstance(x, float) for x in velocities)
+            and isinstance(opacities, list)
+            and all(isinstance(x, float) for x in opacities)
+        ), 'Expected: mass=float, velocities/opacities=list[float]'
     # define constants
     c = astropy.constants.c
-    sigma_sb = astropy.constants.sigma_sb
+    sigSB = astropy.constants.sigma_sb
 
     # add unit to input
-    t = t * astropy.units.day
-    mass = mass * astropy.constants.M_sun
-    velocities = velocities * astropy.constants.c
-    opacities = opacities * astropy.units.cm**2 / astropy.units.g
+    t *= astropy.units.day
+    mass *= astropy.constants.M_sun
+    velocities *= astropy.constants.c
+    opacities *= astropy.units.cm**2 / astropy.units.g
+
+    # Validate arguments
+    t0 = 5e-2 * astropy.units.day
+    opacities = np.atleast_1d(opacities)
     
+    assert np.all(t > t0), (
+        f'Times must be > {t0}'
+    )
+    assert len(velocities) == len(opacities) + 1, (
+        'len(velocities) must be len(opacities) + 1'
+    )
     # convert to internal units - using vectorized operations
     t = t.to_value(astropy.units.s)
     t0 = t0.to_value(astropy.units.s)
@@ -1896,7 +1924,7 @@ def lightcurve_HoNa(t, mass, velocities, opacities, n):
     r = be * t * (c * astropy.units.s)
     
     # Effective temperature - use broadcasting for squaring
-    T = ((L / (4 * np.pi * sigma_sb * r**2))**0.25).to(astropy.units.K)
+    T = ((L / (4 * np.pi * sigSB * r**2))**0.25).to(astropy.units.K)
     
     # Return results
     return L, T, r.to(astropy.units.cm)
